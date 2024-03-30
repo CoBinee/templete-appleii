@@ -2190,14 +2190,14 @@
 ;
 font:
 
-.incbin     "resources/fonts/font-8.ts"
+.incbin     "resources/fonts/font-7.ts"
 
 ; かな
 ;
 kana:
 
-.incbin     "resources/fonts/kana-8a.ts"
-.incbin     "resources/fonts/kana-8b.ts"
+.incbin     "resources/fonts/kana-7a.ts"
+.incbin     "resources/fonts/kana-7b.ts"
 
 ; HiRes グラフィックス
 ;
