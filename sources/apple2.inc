@@ -251,6 +251,10 @@ HIRES                       :=  $c057           ; Hires graphics
 DHIRESON                    :=  $c05e           ; Enable double-width graphics
 DHIRESOFF                   :=  $c05f           ; Disable double-width graphics
 
+; サウンド
+;
+SPEAKER                     :=  $c030           ; Toggle speaker 
+
 ; ゲームコントローラ
 ;
 TAPEIN                      :=  $c060           ; Read casette input / Switch input 3

@@ -93,6 +93,7 @@
 
 ; CATALOG を実行する
 ;
+.if     IOCS_CATALOG
 .global _IocsCatalog
 .proc   _IocsCatalog
 
@@ -132,6 +133,7 @@
     rts
 
 .endproc
+.endif
 
 ; バイナリファイルを読み込む
 ;
@@ -800,10 +802,10 @@
     ; アドレス計算
     txa
     clc
-    adc     hgr_tile_y_address_low, y
+    adc     _iocs_hgr_tile_y_address_low, y
     tax
     lda     #$00
-    adc     hgr_tile_y_address_high, y
+    adc     _iocs_hgr_tile_y_address_high, y
 
     ; 終了
     rts
@@ -966,6 +968,7 @@
 
 ; IOCS_0_HGR_SRC の 7x8 ピクセルパターンを IOCS_0_MASK でマスクして指定されたタイル位置へ描画する
 ;
+.if     IOCS_MASKED
 .proc   IocsDraw7x8MaskedXy
 
     ; IN
@@ -978,10 +981,12 @@
     jsr     _IocsGetVramAddress
 
 .endproc
+.endif
 
 ; IOCS_0_HGR_SRC の 7x8 ピクセルパターンを IOCS_0_MASK でマスクして指定された VRAM アドレスへ描画する
 ;
-.proc IocsDraw7x8MaskedAx
+.if     IOCS_MASKED
+.proc   IocsDraw7x8MaskedAx
 
     ; IN
     ;   IOCS_0_HGR_SRC  = 7x8 重ね合わせるピクセルパターン
@@ -993,10 +998,12 @@
     sta     IOCS_0_HGR_DST_H
 
 .endproc
+.endif
 
 ; IOCS_0_HGR_SRC の 7x8 ピクセルパターンを IOCS_0_MASK でマスクして IOCS_0_HGR_DST へ描画する
 ;
-.proc IocsDraw7x8Masked0
+.if     IOCS_MASKED
+.proc   IocsDraw7x8Masked0
 
     ; IN
     ;   IOCS_0_HGR_SRC  = 7x8 重ね合わせるピクセルパターン
@@ -1102,9 +1109,11 @@
     rts
 
 .endproc
+.endif
 
 ; IOCS_0_HGR_SRC の 7x8 ピクセルパターンを IOCS_0_BASE に IOCS_0_MASK でマスクして重ね合わせて指定されたタイル位置へ描画する
 ;
+.if     IOCS_LAYERED
 .proc   IocsDraw7x8LayeredXy
 
     ; IN
@@ -1118,10 +1127,13 @@
     jsr     _IocsGetVramAddress
 
 .endproc
+.endif
 
 ; IOCS_0_HGR_SRC の 7x8 ピクセルパターンを IOCS_0_BASE に IOCS_0_MASK でマスクして重ね合わせて指定された VRAM アドレスへ描画する
 ;
-.proc IocsDraw7x8LayeredAx
+.if     IOCS_LAYERED
+.proc   IocsDraw7x8LayeredAx
+
 
     ; IN
     ;   IOCS_0_HGR_SRC  = 7x8 重ね合わせるピクセルパターン
@@ -1134,10 +1146,12 @@
     sta     IOCS_0_HGR_DST_H
 
 .endproc
+.endif
 
 ; IOCS_0_HGR_SRC の 7x8 ピクセルパターンを IOCS_0_BASE に IOCS_0_MASK でマスクして重ね合わせて IOCS_0_HGR_DST へ描画する
 ;
-.proc IocsDraw7x8Layered0
+.if     IOCS_LAYERED
+.proc   IocsDraw7x8Layered0
 
     ; IN
     ;   IOCS_0_HGR_SRC  = 7x8 重ね合わせるピクセルパターン
@@ -1244,6 +1258,7 @@
     rts
 
 .endproc
+.endif
 
 ; 文字列を描画する
 ;
@@ -1308,8 +1323,8 @@
 :    
 
     ; 1 文字の描画
-    ldx     #<font
-    ldy     #>font
+    ldx     #<_iocs_font
+    ldy     #>_iocs_font
     sec
     sbc     #$20
     jsr     _IocsGet7x8PatternAddress
@@ -1471,6 +1486,7 @@
 
 ; 7x8 ピクセルパターンのマスクしたタイルセットを描画する
 ;
+.if     IOCS_MASKED
 .global _IocsDraw7x8MaskedTileset
 .proc   _IocsDraw7x8MaskedTileset
 
@@ -1590,9 +1606,11 @@
     rts
 
 .endproc
+.endif
 
 ; 7x8 ピクセルパターンのタイルマップを描画する
 ;
+.if     IOCS_TILEMAP
 .global _IocsDraw7x8Tilemap
 .proc   _IocsDraw7x8Tilemap
 
@@ -1730,9 +1748,11 @@
     rts
 
 .endproc
+.endif
 
 ; 7x8 ピクセルパターンのスプライトを描画する
 ;
+.if     IOCS_SPRITE
 .global _IocsDraw7x8Sprite
 .proc   _IocsDraw7x8Sprite
 
@@ -1929,6 +1949,7 @@
     .byte   $00
 
 .endproc
+.endif
 
 ; COUT による文字列の出力を行う
 ;
@@ -2010,6 +2031,151 @@
     rts
 
 .endproc
+
+; BEEP で音符を再生する
+;
+.if     IOCS_BEEP
+.global _IocsBeepNote
+.proc   _IocsBeepNote
+
+    ; IN
+    ;   x = 音階
+    ;   a = 音長
+
+    ; 1 回の音符の再生
+    sta     IOCS_0_BEEP_LENGTH
+    ldy     iocs_beep_l256_count, x
+:
+    lda     SPEAKER                 ;    4 cycle
+    lda     iocs_beep_freq_count, x ;    4 cycle
+                                    ; =  8 cycle
+:
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    sec                             ;    2 cycle
+    sbc     #$01                    ;    2 cycle
+    bne     :-                      ;    3 cycle
+                                    ; = 17 cycle
+                                    ;   -1 cycle
+    dey                             ;    2 cycle
+    beq     :+                      ;    3 cycle
+                                    ; =  4 cycle
+                                    ;   -1 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    jmp     :--                     ;    3 cycle
+                                    ; = 12 cycle
+:
+    ldy     iocs_beep_l256_count, x ;    4 cycle
+    dec     IOCS_0_BEEP_LENGTH      ;    5 cycle
+    bne     :---                    ;    3 cycle
+                                    ; = 12 cycle
+
+    ; 終了
+    rts
+
+.endproc
+.endif
+
+; BEEP で休符を再生する
+;
+.if     IOCS_BEEP
+.global _IocsBeepRest
+.proc   _IocsBeepRest
+
+    ; IN
+    ;   a = 音長
+
+    ; 1 回の休符の再生
+    sta     IOCS_0_BEEP_LENGTH
+    ldx     #_O4A
+    ldy     iocs_beep_l256_count, x
+:
+    lda     :-                      ;    4 cycle
+    lda     iocs_beep_freq_count, x ;    4 cycle
+                                    ; =  8 cycle
+:
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    sec                             ;    2 cycle
+    sbc     #$01                    ;    2 cycle
+    bne     :-                      ;    3 cycle
+                                    ; = 17 cycle
+                                    ;   -1 cycle
+    dey                             ;    2 cycle
+    beq     :+                      ;    3 cycle
+                                    ; =  4 cycle
+                                    ;   -1 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    nop                             ;    2 cycle
+    jmp     :--                     ;    3 cycle
+                                    ; = 12 cycle
+:
+    ldy     iocs_beep_l256_count, x ;    4 cycle
+    dec     IOCS_0_BEEP_LENGTH      ;    5 cycle
+    bne     :---                    ;    3 cycle
+                                    ; = 12 cycle
+
+    ; 終了
+    rts
+
+.endproc
+.endif
+
+; BEEP で譜面を再生する
+;
+.if     IOCS_BEEP
+.global _IocsBeepScore
+.proc   _IocsBeepScore
+
+    ; IN
+    ;   ax = 譜面
+
+    ; シーケンスの設定
+    stx     IOCS_0_BEEP_SCORE_L
+    sta     IOCS_0_BEEP_SCORE_H
+    lda     #$00
+    sta     IOCS_0_BEEP_SCORE_INDEX
+    
+    ; 譜面の再生
+@score_loop:
+    ldy     IOCS_0_BEEP_SCORE_INDEX
+    lda     (IOCS_0_BEEP_SCORE), y
+    bmi     @score_end
+    tax
+    iny
+    lda     (IOCS_0_BEEP_SCORE), y
+    cpx     #IOCS_BEEP_R
+    beq     :+
+    jsr     _IocsBeepNote
+    jmp     :++
+:
+    jsr     _IocsBeepRest
+:
+    inc     IOCS_0_BEEP_SCORE_INDEX
+    inc     IOCS_0_BEEP_SCORE_INDEX
+    bne     @score_loop
+    inc     IOCS_0_BEEP_SCORE_H
+    jmp     @score_loop
+@score_end:
+
+    ; 終了
+    rts
+
+.endproc
+.endif
 
 ; A * X の計算を行う
 ;
@@ -2129,6 +2295,121 @@
 
 .endproc
 
+; atan2 の値を取得する
+;
+.if     IOCS_TRIGONOMETRIC
+.global _IocsGetAtan2
+.proc   _IocsGetAtan2
+
+    ; IN
+    ;   x = X 値
+    ;   y = Y 値
+    ; OUT
+    ;   a = 角度（$00..$ff）
+    
+    ; X, Y 値の取得
+    stx     IOCS_0_ATAN2_X
+    sty     IOCS_0_ATAN2_Y
+    
+    ; 値の取得
+    lda     #$00
+    sta     IOCS_0_ATAN2_FLAG
+    txa
+    bpl     :++
+    lda     IOCS_0_ATAN2_FLAG
+    ora     #%00000001
+    sta     IOCS_0_ATAN2_FLAG
+    txa
+    eor     #$ff
+    clc
+    adc     #$01
+    bpl     :+
+    lda     #$7f
+:
+    sta     IOCS_0_ATAN2_X
+:
+    tya
+    bpl     :++
+    lda     IOCS_0_ATAN2_FLAG
+    ora     #%00000010
+    sta     IOCS_0_ATAN2_FLAG
+    tya
+    eor     #$ff
+    clc
+    adc     #$01
+    bpl     :+
+    lda     #$7f
+:
+    sta     IOCS_0_ATAN2_Y
+:
+    lda     IOCS_0_ATAN2_X
+    cmp     IOCS_0_ATAN2_Y
+    bcs     :+
+    lda     IOCS_0_ATAN2_Y
+:
+    cmp     #$08
+    bcc     :+
+    lsr     a
+    lsr     IOCS_0_ATAN2_X
+    lsr     IOCS_0_ATAN2_Y
+    jmp     :-
+:
+    lda     IOCS_0_ATAN2_Y
+    asl     a
+    asl     a
+    asl     a
+    clc
+    adc     IOCS_0_ATAN2_X
+    tax
+    lda     iocs_atan2_angle, x
+    sta     IOCS_0_ATAN2_ANGLE
+    lda     IOCS_0_ATAN2_FLAG
+    clc
+    adc     #$01
+    and     #%00000010
+    beq     :+
+    lda     IOCS_0_ATAN2_ANGLE
+    eor     #$ff
+    clc
+    adc     #$01
+    sta     IOCS_0_ATAN2_ANGLE
+:
+    ldx     IOCS_0_ATAN2_FLAG
+    lda     iocs_atan2_offset, x
+    clc
+    adc     IOCS_0_ATAN2_ANGLE
+    
+    ; 終了
+    rts
+
+.endproc
+.endif
+
+; 待機する
+;
+.global _IocsWait
+.proc   _IocsWait
+
+    ; IN
+    ;   a = 待ち時間
+    ; WORK
+    ;   IOCS_0_WORK_0..1
+
+    ; 待機
+    sta     IOCS_0_WORK_0
+    lda     #$00
+    sta     IOCS_0_WORK_1
+:
+    dec     IOCS_0_WORK_1
+    bne     :-
+    dec     IOCS_0_WORK_0
+    bne     :-
+
+    ; 終了
+    rts
+
+.endproc
+
 ; エラーに対してリトライ待ちをする
 ;
 .global _IocsRetry
@@ -2188,29 +2469,193 @@
 
 ; フォント
 ;
-font:
+.global _iocs_font
+_iocs_font:
 
 .incbin     "resources/fonts/font-7.ts"
 
 ; かな
 ;
-kana:
-
+.if     IOCS_KANA
+.global _iocs_kana
+_iocs_kana:
 .incbin     "resources/fonts/kana-7a.ts"
 .incbin     "resources/fonts/kana-7b.ts"
+.endif
 
 ; HiRes グラフィックス
 ;
 
 ; VRAM アドレス
-hgr_tile_y_address_low:
+.global _iocs_hgr_tile_y_address_low
+_iocs_hgr_tile_y_address_low:
 
     .byte   <$2000, <$2080, <$2100, <$2180, <$2200, <$2280, <$2300, <$2380
     .byte   <$2028, <$20a8, <$2128, <$21a8, <$2228, <$22a8, <$2328, <$23a8
     .byte   <$2050, <$20d0, <$2150, <$21d0, <$2250, <$22d0, <$2350, <$23d0
 
-hgr_tile_y_address_high:
+.global _iocs_hgr_tile_y_address_high
+_iocs_hgr_tile_y_address_high:
 
     .byte   >$2000, >$2080, >$2100, >$2180, >$2200, >$2280, >$2300, >$2380
     .byte   >$2028, >$20a8, >$2128, >$21a8, >$2228, >$22a8, >$2328, >$23a8
     .byte   >$2050, >$20d0, >$2150, >$21d0, >$2250, >$22d0, >$2350, >$23d0
+
+; BEEP
+;
+
+; 1 周波数分の待機回数
+.if     IOCS_BEEP
+iocs_beep_freq_count:
+
+    .byte   (IOCS_BEEP_CYCLE_O3C  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3Cp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3D  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3Dp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3E  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3F  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3Fp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3G  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3Gp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3A  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3Ap - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O3B  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4C  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4Cp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4D  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4Dp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4E  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4F  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4Fp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4G  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4Gp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4A  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4Ap - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O4B  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5C  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5Cp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5D  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5Dp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5E  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5F  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5Fp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5G  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5Gp - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5A  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5Ap - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_O5B  - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_PI   - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+    .byte   (IOCS_BEEP_CYCLE_PO   - IOCS_BEEP_CYCLE_BASE) / IOCS_BEEP_CYCLE_LOOP
+.endif
+
+; L256 の長さを再生ためのループ回数
+.if     IOCS_BEEP
+iocs_beep_l256_count:
+
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3C
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3Cp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3D
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3Dp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3E
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3F
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3Fp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3G
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3Gp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3A
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3Ap
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O3B
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4C
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4Cp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4D
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4Dp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4E
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4F
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4Fp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4G
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4Gp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4A
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4Ap
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O4B
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5C
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5Cp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5D
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5Dp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5E
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5F
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5Fp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5G
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5Gp
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5A
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5Ap
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_O5B
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_PI
+    .byte   IOCS_BEEP_CYCLE_L256 / IOCS_BEEP_CYCLE_PO
+.endif
+
+
+; 三角関数
+;
+
+; sin（小数部）
+.if     IOCS_TRIGONOMETRIC
+.global _iocs_sin_decimal
+_iocs_sin_decimal:
+    
+    .byte   $00, $06, $0c, $12, $19, $1f, $25, $2b, $31, $38, $3e, $44, $4a, $50, $56, $5c
+    .byte   $61, $67, $6d, $73, $78, $7e, $83, $88, $8e, $93, $98, $9d, $a2, $a7, $ab, $b0
+    .byte   $b5, $b9, $bd, $c1, $c5, $c9, $cd, $d1, $d4, $d8, $db, $de, $e1, $e4, $e7, $ea
+    .byte   $ec, $ee, $f1, $f3, $f4, $f6, $f8, $f9, $fb, $fc, $fd, $fe, $fe, $ff, $ff, $ff
+    .byte   $00, $ff, $ff, $ff, $fe, $fe, $fd, $fc, $fb, $f9, $f8, $f6, $f4, $f3, $f1, $ee
+    .byte   $ec, $ea, $e7, $e4, $e1, $de, $db, $d8, $d4, $d1, $cd, $c9, $c5, $c1, $bd, $b9
+    .byte   $b5, $b0, $ab, $a7, $a2, $9d, $98, $93, $8e, $88, $83, $7e, $78, $73, $6d, $67
+    .byte   $61, $5c, $56, $50, $4a, $44, $3e, $38, $31, $2b, $25, $1f, $19, $12, $0c, $06
+    .byte   $00, $fa, $f4, $ee, $e7, $e1, $db, $d5, $cf, $c8, $c2, $bc, $b6, $b0, $aa, $a4
+    .byte   $9f, $99, $93, $8d, $88, $82, $7d, $78, $72, $6d, $68, $63, $5e, $59, $55, $50
+    .byte   $4b, $47, $43, $3f, $3b, $37, $33, $2f, $2c, $28, $25, $22, $1f, $1c, $19, $16
+    .byte   $14, $12, $0f, $0d, $0c, $0a, $08, $07, $05, $04, $03, $02, $02, $01, $01, $01
+    .byte   $00, $01, $01, $01, $02, $02, $03, $04, $05, $07, $08, $0a, $0c, $0d, $0f, $12
+    .byte   $14, $16, $19, $1c, $1f, $22, $25, $28, $2c, $2f, $33, $37, $3b, $3f, $43, $47
+    .byte   $4b, $50, $55, $59, $5e, $63, $68, $6d, $72, $78, $7d, $82, $88, $8d, $93, $99
+    .byte   $9f, $a4, $aa, $b0, $b6, $bc, $c2, $c8, $cf, $d5, $db, $e1, $e7, $ee, $f4, $fa
+.endif
+
+; sin（整数部）
+.if     IOCS_TRIGONOMETRIC
+.global _iocs_sin_integer
+_iocs_sin_integer:
+    
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $01, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+    .byte   $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+    .byte   $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+.endif
+
+; atan
+.if     IOCS_TRIGONOMETRIC
+iocs_atan2_angle:
+    
+    .byte   $20, $00, $00, $00, $00, $00, $00, $00
+    .byte   $40, $20, $12, $0d, $09, $08, $06, $05
+    .byte   $40, $2d, $20, $17, $12, $0f, $0d, $0b
+    .byte   $40, $32, $28, $20, $1a, $16, $12, $10
+    .byte   $40, $36, $2d, $25, $20, $1b, $17, $15
+    .byte   $40, $37, $30, $29, $24, $20, $1c, $19
+    .byte   $40, $39, $32, $2d, $28, $23, $20, $1c
+    .byte   $40, $3a, $34, $2f, $2a, $26, $23, $20
+
+iocs_atan2_offset:
+    
+    .byte   $00, $80, $00, $80
+.endif

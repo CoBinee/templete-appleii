@@ -103,6 +103,7 @@
 ; ステート
 @state:
     .word   AppDemoLoadImage
+    .word   AppDemoPlayBeep
     .word   AppDemoSaveVram
     .word   AppDemoLoadVram
     .word   AppDemoLoadScroll
@@ -144,7 +145,60 @@
     .byte   22
     .word   @string_text
 @string_text:
-    .asciiz "HELLO, APPLE ][."
+    .byte   _KO, __N, _NI, _TI, _WA
+    .asciiz ", APPLE ][."
+    
+.endproc
+
+; BEEP を再生する
+;
+.proc   AppDemoPlayBeep
+
+    ; BEEP の再生
+    ldx     #<@beep
+    lda     #>@beep
+    jsr     _IocsBeepScore
+
+    ; 終了
+    inc     APP_0_STATE
+    rts
+
+; BEEP
+@beep:
+    .byte   _O3B,  _L8
+    .byte   _O4Cp, _L8
+    .byte   _O4Dp, _L8
+    .byte   _O4E,  _L4
+    .byte   _O4G,  _L4
+    .byte   _O4B,  _L4
+    .byte   _O5E,  _L4
+    .byte   _O5G,  _L2
+    .byte   _R,    _L8
+    .byte   _O5Fp, _L8
+    .byte   _O5E,  _L8
+    .byte   _O5D,  _L8
+    .byte   _O5C,  _L2
+    .byte   _R,    _L4
+    .byte   _O5C,  _L16
+    .byte   _O4B,  _L16
+    .byte   _O4A,  _L16
+    .byte   _O4G,  _L16
+    .byte   _O4Fp, _L2p
+    .byte   _R,    _L4
+    .byte   _O4Fp, _L4
+    .byte   _O4A,  _L4
+    .byte   _O5C,  _L4
+    .byte   _O5E,  _L4
+    .byte   _O5Dp, _L2
+    .byte   _R,    _L8
+    .byte   _O5C,  _L8
+    .byte   _O4B,  _L8
+    .byte   _O4A,  _L8
+    .byte   _O4G,  _L2
+    .byte   _O4A,  _L4
+    .byte   _O4Fp, _L4
+    .byte   _O4B,  _L1
+    .byte   IOCS_BEEP_END
     
 .endproc
 
